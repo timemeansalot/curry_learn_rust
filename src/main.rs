@@ -1,20 +1,35 @@
-/// test env::var in rust
-/// # date: 2025-03-25
-/// # how to run:
-/// ```bash
-/// export IS_FLAG=true && cargo run
-/// cargo run
-/// ```
-use std::env;
+use ed25519_dalek::{Signature, Signer, SigningKey};
+use rand::rngs::OsRng;
+
+/// generate the keypair for sign and verify signature
+/// the keypair is composed of `secret key` and `verifying key`
+/// - the `secret key` is 32 bytes random number for ed25519
+/// - the `verifying key` is calculated using the `secret key`
+fn generate_key() -> SigningKey {
+    let mut csprng = OsRng;
+    let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+    signing_key
+}
+
+/// use the keypair to sign the message, return the signature
+fn sign(sk: &SigningKey, message: &[u8]) -> Signature {
+    sk.sign(message)
+}
+
+/// use the keypair and signature to verify the message
+/// I don't understand the detailed verify algorithm for now as it need
+/// many crypto knowledge
+fn verify(sk: &SigningKey, message: &[u8], signature: &Signature) -> bool {
+    sk.verify(message, signature).is_ok()
+}
+
 fn main() {
-    let default = "false".to_string();
-    // unwrap_or: return value in Ok(value) or return the default value provided
-    let flag = env::var("IS_FLAG").unwrap_or(default);
-    // unwrap_or_else: return value in Ok(value) or calculate the value from closure provided
-    //let flag = env::var("IS_FLAG").unwrap_or_else(|_| "false".to_string());
-    if flag == "true" {
-        println!("read true from env!");
+    let message: &[u8] = b"This is a test of the tsunami alert system.";
+    let signing_key = generate_key();
+    let signature = sign(&signing_key, message);
+    if verify(&signing_key, message, &signature) {
+        println!("verify passed");
     } else {
-        println!("read false from env!");
+        println!("verify failed");
     }
 }
